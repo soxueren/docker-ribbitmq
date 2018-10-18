@@ -1,0 +1,221 @@
+<!DOCTYPE html>
+<html>
+<head lang="en">
+    <meta charset="UTF-8">
+    <title></title>
+    <link rel="stylesheet" href="./css/ol.css" type="text/css">
+    <link rel="stylesheet" href="./css/index.css" type="text/css">
+    <link rel="stylesheet" href="bootstrap/css/bootstrap.css">
+    <script src="script/lib/jquery.js"></script>
+    <script src="bootstrap/js/bootstrap.js"></script>
+    <script src="script/lib/underscore.js"></script>
+    <script src="script/lib/sockjs.js"></script>
+    <script src="script/lib/stomp.js"></script>
+    <script src="script/lib/proj4.js"></script>
+    <script src="script/lib/ol-debug.js"></script>
+    <script src="script/lib/base.js"></script>
+    <script src="script/lib/wmts-require.js"></script>
+    <script src="script/MapObject.js"></script>
+    <script src="script/VectorObject.js"></script>
+    <script src="script/FeatureListener.js"></script>
+    <script type="text/javascript">
+
+     testcount=1000;//测试数量
+     var connect_callback=function(x){
+         console.log(this);
+         if(svrlistener._config.queue != ''){
+             _client.subscribe(
+                     '/queue/'+svrlistener._config.queue,
+                     function(d){
+                         console.log(' [*] '+d.body);
+                         try{
+                             var dataobj=JSON.parse(d.body);
+                             //收到消息，处理对象并，改变移动对象
+                             var old_pos=vectorobj.PoliceObject[dataobj.jh].getGeometry().getLastCoordinate();
+                             var new_pos=[Number(dataobj.posx),Number(dataobj.posy)];
+                             new_pos=ol.proj.fromLonLat(new_pos);
+                             var new_geom=new ol.geom.Point(new_pos);
+
+                             vectorobj.PoliceObject[dataobj.jh].setGeometry(new_geom);
+
+                             if(old_pos!=new_pos){
+                                 var _geom=vectorobj.TraceObject[dataobj.jh].getGeometry();
+                                 var _coordinates=_geom.getCoordinates();
+                                 _coordinates.push(new_pos);
+                                 _geom.setCoordinates(_coordinates);
+                                 vectorobj.TraceObject[dataobj.jh].setGeometry(_geom);
+                             }
+
+                         }catch(e){
+                             JSON.parse(d.body);
+                             console.log(vectorobj.PoliceObject[JSON.parse(d.body).jh]);
+                         }
+
+
+                     },
+                     {
+                         "content-type":"text/plain",
+                         "auto_delete":false,
+                         "durable":true,
+                         "id":"01"
+                     }
+             );
+         }
+
+
+     };
+     var error_callback=function(x){
+         console.log(x);
+     };
+    function sendlog(x){
+       console.log(x);
+    }
+
+     //可用后台推送
+     //推送随机位置及随机编号
+     var ChangePosRandom=function(){
+       var coords=[Math.random()/100-Math.random()/100+84.85,Math.random()/100-Math.random()/100+45.57];
+       var jh='jh_'+(Math.random()*testcount).toFixed(0);
+       sendMessage({"jh":jh,"posx":coords[0],"posy":coords[1]},sendlog);
+       setTimeout(ChangePosRandom,100);
+     };
+     //广播消息
+     var sendMessage=function(dataobj,callback){
+           var _header={
+               "app-id":"",
+               "content-type":"text/plain",
+               "auto_delete":false,
+               "durable":true,
+               "exchange":"",
+               "apply-to":"",
+               "id":"01"
+           };
+           if(_.isEmpty(_client)){
+               console.log("websocket 未连接！");
+               return;
+           }
+           _client.debug=callback;
+           _client.send("/exchange/test.fanout/001",_header,JSON.stringify(dataobj));
+       };
+
+      $(function () {
+          console.log(svrlistener);
+          //svrlistener.initListener();
+          mapobj.initMap();
+          vectorobj.init();
+
+          $("#conbtn").click(function(){
+
+              if(1){
+                  _client = Stomp.client('ws://localhost:15674/ws');
+                  if(!_.isEmpty(_client)){
+                      _client.connect(svrlistener._config.user,
+                              svrlistener._config.password,
+                              connect_callback,
+                              error_callback,
+                              svrlistener._config.host);
+                  }
+                  $(this).addClass('active');
+              }
+
+              for(var n=0;n<testcount;n++){
+                  try{
+                      var _rcolor ='#' + Math.floor(Math.random()*16777215).toString(16);
+                      vectorobj.TraceColor['jh_'+n] = _rcolor;
+                      var _rstyle=new ol.style.Style({
+                          fill: new ol.style.Fill({
+                              color: _rcolor
+                          }),
+                          stroke: new ol.style.Stroke({
+                              color: _rcolor,
+                              width: 2,
+                              lineDash:[10,5]
+                          }),
+                          image:new ol.style.Circle({
+                              radius: 5,
+                              fill: new ol.style.Fill({
+                                  color: _rcolor
+                              }),
+                              stroke: new ol.style.Stroke({
+                                  color: '#fff',
+                                  width: 2
+                              })
+                          })
+                      });
+
+                      var coords=[Math.random()/20+84.85,Math.random()/20+45.57];
+                      coords=ol.proj.fromLonLat(coords);
+                      var posfeature = new ol.Feature({
+                          geometry: new ol.geom.Point(coords),
+                          labelPoint: new ol.geom.Point(coords),
+                          name: 'jh_'+n
+                      });
+                      posfeature.setId(n);
+                      posfeature.set("BH",'jh_'+n);
+                      posfeature.setStyle(_rstyle);
+                      vectorobj.PoliceObject[posfeature.get("BH")]=posfeature;
+                      vectorobj.PoliceSource.addFeature(posfeature);
+
+
+
+                      var startline=[];
+                      startline.push(coords);
+                      startline.push(coords);
+                      var tracegeom=new ol.geom.LineString(startline);
+                      var tracefeature = new ol.Feature({
+                          geometry: tracegeom,
+                          labelPoint: new ol.geom.Point(coords),
+                          name: 'jh_'+n
+                      });
+                      tracefeature.set("BH",'jh_'+n);
+                      tracefeature.setStyle(_rstyle);
+                      vectorobj.TraceObject[tracefeature.get("BH")]=tracefeature;
+                      vectorobj.TraceSource.addFeature(tracefeature);
+
+
+
+                  }catch(e){
+
+                  }
+              }
+
+
+          });
+
+          $("#bswitchbtn").click(function(){
+              if(mapobj.tdt_img.getVisible())
+                  mapobj.tdt_img.setVisible(false);
+              else
+                  mapobj.tdt_img.setVisible(true);
+
+              mapobj.tdt_vec.setVisible(!mapobj.tdt_img.getVisible());
+
+          });
+
+          $("#randommovebtn").click(function(){
+              ChangePosRandom();
+          });
+
+      });
+
+    </script>
+</head>
+<body>
+<div id="nav">
+<div id="listenertools">
+    <div  class="btn-group">
+        <button id="conbtn" class="btn btn-default">监听</button>
+        <button id="randommovebtn" class="btn btn-default">移动测试</button>
+        <button id="bswitchbtn" class="btn btn-default">切换</button>
+
+    </div>
+</div>
+</div>
+<div id="tree">
+
+</div>
+<div id="map">
+
+</div>
+</body>
+</html>

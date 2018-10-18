@@ -15,7 +15,7 @@ Different versions of RabbitMQ are located at the github repo [branches](https:/
 To create the image `frodenas/rabbitmq`, execute the following command on the `docker-rabbitmq` folder:
 
 ```
-$ docker build -t frodenas/rabbitmq .
+$ docker build -t soxueren/rabbitmq .
 ```
 
 ### Run the image
@@ -77,4 +77,4 @@ The rabbitmq_stomp demo in ws-demo
 
 ## Copyright
 
-Copyright (c) 2014 Ferran Rodenas. See [LICENSE](https://github.com/frodenas/docker-rabbitmq/blob/master/LICENSE) for details.
+Copyright (c) 2014 Ferran Rodenas. See [LICENSE](https://github.com/soxueren/docker-rabbitmq/blob/master/LICENSE) for details.

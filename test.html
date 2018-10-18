@@ -1,0 +1,14 @@
+<!DOCTYPE html>
+<html>
+<head>
+
+<script src="http://cdn.sockjs.org/sockjs-0.3.min.js"></script>
+<script src="stomp.js"></script>
+<script>
+    var ws = new SockJS('http://127.0.0.1:15674/stomp');
+    var client = Stomp.over(ws);
+     console.log(client);
+</script>
+</head>
+<body></body>
+</html>

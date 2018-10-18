@@ -4,7 +4,7 @@ A Dockerfile that produces a Docker Image for [RabbitMQ](https://www.rabbitmq.co
 
 ## RabbitMQ version
 
-The `master` branch currently hosts RabbitMQ 3.5.
+The `master` branch currently hosts RabbitMQ 3.7.
 
 Different versions of RabbitMQ are located at the github repo [branches](https://github.com/frodenas/docker-rabbitmq/branches).
 
@@ -63,11 +63,17 @@ On this example we will preset our custom username and password:
 $ docker run -d \
     --name rabbitmq \
     -p 5672:5672 \
+    -p 15674:15674 \
     -e RABBITMQ_USERNAME=myusername \
     -e RABBITMQ_PASSWORD=mypassword \
     -e RABBITMQ_VHOST=myvhost \
-    frodenas/rabbitmq
+    soxueren/rabbitmq:3.7-management
 ```
+#### Enable websocket
+
+enable rabbitmq_stomp in 15674
+
+The rabbitmq_stomp demo in ws-demo
 
 ## Copyright
 

@@ -19,8 +19,7 @@ ENTRYPOINT ["/scripts/run.sh"]
 CMD [""]
 
 # Expose listen port
-EXPOSE 5672
-EXPOSE 15672
+EXPOSE 5672 15672 15674
 
 # Expose our log volumes
 VOLUME ["/var/log/rabbitmq"]

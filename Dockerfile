@@ -1,4 +1,4 @@
-FROM rabbitmq:3.7-management
+FROM bitnami/rabbitmq:latest
 MAINTAINER jxw <jxw608@petrochina.com.cn>
 
 RUN cd ~
@@ -9,17 +9,12 @@ RUN rabbitmq-plugins enable rabbitmq_stomp && \
     rabbitmq-plugins enable rabbitmq_web_stomp_examples && \
     service rabbitmq-server stop 
 
-# Add scripts
-ADD scripts /scripts
-RUN chmod +x /scripts/*.sh
-RUN touch /.firstrun
-
-# Command to run
-ENTRYPOINT ["/scripts/run.sh"]
-CMD [""]
-
-# Expose listen port
-EXPOSE 5672 15672  15674
 
 # Expose our log volumes
 VOLUME ["/var/log/rabbitmq"]
+
+EXPOSE 4369 5672 25672 15672 15674
+
+USER 1001
+ENTRYPOINT [ "/app-entrypoint.sh" ]
+CMD [ "nami", "start", "--foreground", "rabbitmq" ]
